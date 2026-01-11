@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Sparkles, Heart, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Reviews } from '../components/Reviews';
+import { DecorativeSection } from '../components/DecorativeSection';
+import { MagicButton } from '../components/MagicButton';
 
 interface SiteContent {
   section: string;
@@ -54,42 +56,56 @@ export function Home() {
 
   return (
     <div className="min-h-screen">
-      <section className="relative overflow-hidden bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 py-20 md:py-32">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-10 left-10 w-20 h-20 bg-pink-300 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-20 right-20 w-32 h-32 bg-purple-300 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          <div className="absolute top-40 right-40 w-24 h-24 bg-blue-300 rounded-full blur-3xl animate-pulse delay-500"></div>
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center space-x-2 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full mb-8">
-            <Sparkles className="w-5 h-5 text-pink-400" />
-            <span className="text-sm font-medium text-gray-700">Bienvenue dans mon univers magique</span>
+      <DecorativeSection
+        decorations={[
+          { type: 'emoji', emoji: '🌸', position: { top: '10%', left: '5%' }, size: 'lg', opacity: 0.08, delay: 0 },
+          { type: 'emoji', emoji: '✨', position: { top: '20%', right: '8%' }, size: 'md', opacity: 0.1, delay: 2 },
+          { type: 'emoji', emoji: '💖', position: { bottom: '15%', left: '10%' }, size: 'md', opacity: 0.08, delay: 1 },
+          { type: 'emoji', emoji: '🦋', position: { top: '40%', right: '5%' }, size: 'sm', opacity: 0.06, delay: 3 },
+          { type: 'heart', position: { top: '60%', left: '3%' }, size: 'sm', opacity: 0.1, delay: 1.5 },
+          { type: 'sparkle', position: { bottom: '20%', right: '12%' }, size: 'sm', opacity: 0.08, delay: 2.5 },
+        ]}
+      >
+        <section className="relative overflow-hidden bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 py-20 md:py-32 texture-grain">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-10 left-10 w-20 h-20 bg-pink-300 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-20 right-20 w-32 h-32 bg-purple-300 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute top-40 right-40 w-24 h-24 bg-blue-300 rounded-full blur-3xl animate-pulse delay-500"></div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-            {content.title || 'Lézhy Mermaid'}
-          </h1>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center space-x-2 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full mb-8 animate-float-gentle">
+              <Sparkles className="w-5 h-5 text-pink-400 animate-pulse" />
+              <span className="text-sm font-medium text-gray-700">Bienvenue dans mon univers magique</span>
+            </div>
 
-          <p className="text-xl md:text-2xl text-gray-700 mb-4 font-medium">
-            {content.subtitle || 'Tattoo kawaii & féérique'}
-          </p>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent text-shadow-glow">
+              {content.title || 'Lézhy Mermaid'}
+            </h1>
 
-          <p className="text-lg text-gray-600 mb-12 max-w-2xl mx-auto">
-            {content.description || 'Bienvenue dans mon univers pastel et magique'}
-          </p>
+            <p className="text-xl md:text-2xl text-gray-700 mb-4 font-medium">
+              {content.subtitle || 'Tattoo kawaii & féérique'}
+            </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
-            <button className="group bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 text-white px-8 py-4 rounded-full font-medium text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
-              Voir la galerie
-              <Heart className="inline-block ml-2 w-5 h-5 group-hover:fill-white transition-all" />
-            </button>
-            <button className="bg-white text-gray-700 px-8 py-4 rounded-full font-medium text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all border-2 border-pink-200">
-              Me contacter
-            </button>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              {content.description || 'Bienvenue dans mon univers pastel et magique'}
+            </p>
+
+            <p className="handwritten text-pink-500 text-xl mb-12 animate-float-gentle">
+              Entre dans mon univers
+            </p>
+
+            <div className="flex flex-wrap justify-center gap-4">
+              <MagicButton variant="primary" iconEmoji="💖">
+                Voir la galerie
+              </MagicButton>
+              <MagicButton variant="secondary" iconEmoji="✨">
+                Me contacter
+              </MagicButton>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </DecorativeSection>
 
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -108,13 +124,16 @@ export function Home() {
               {featuredTattoos.map((tattoo) => (
                 <div
                   key={tattoo.id}
-                  className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer"
+                  className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg card-kawaii cursor-pointer"
                 >
                   <img
                     src={tattoo.image_url}
                     alt={tattoo.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Heart className="w-6 h-6 text-pink-400 fill-pink-400 animate-pulse" />
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="absolute bottom-0 left-0 right-0 p-4">
                       <p className="text-white font-medium">{tattoo.title}</p>
@@ -125,46 +144,50 @@ export function Home() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
-                <Heart className="w-8 h-8 text-pink-400" />
+            <div className="text-center py-12 bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl border-2 border-pink-200 border-dashed">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-100 rounded-full mb-4 animate-float-gentle">
+                <Heart className="w-10 h-10 text-pink-400 fill-pink-400 animate-pulse" />
               </div>
-              <p className="text-gray-500">Bientôt de magnifiques créations ici!</p>
+              <p className="text-gray-700 font-medium text-lg mb-2">Bientôt de magnifiques créations ici</p>
+              <div className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-full shadow-sm">
+                <Sparkles className="w-4 h-4 text-pink-400" />
+                <span className="text-sm text-gray-600">En cours de création</span>
+              </div>
             </div>
           )}
 
           <div className="text-center mt-12">
-            <button className="bg-gradient-to-r from-pink-400 to-purple-400 text-white px-8 py-3 rounded-full font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all">
+            <MagicButton variant="primary" iconEmoji="✨">
               Voir toute la galerie
-            </button>
+            </MagicButton>
           </div>
         </div>
       </section>
 
       <Reviews />
 
-      <section className="py-20 bg-gradient-to-br from-pink-50 to-purple-50">
+      <section className="py-20 bg-gradient-to-br from-pink-50 to-purple-50 texture-grain">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-3xl">🌸</span>
+            <div className="text-center bg-white rounded-3xl p-8 shadow-lg card-kawaii">
+              <div className="w-20 h-20 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-float-gentle">
+                <span className="text-4xl">🌸</span>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Style Kawaii</h3>
               <p className="text-gray-600">Des créations douces et mignonnes inspirées de l'univers kawaii et pastel</p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-3xl">✨</span>
+            <div className="text-center bg-white rounded-3xl p-8 shadow-lg card-kawaii" style={{ animationDelay: '0.2s' }}>
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-blue-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-float-gentle">
+                <span className="text-4xl">✨</span>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Univers Féérique</h3>
               <p className="text-gray-600">Inspirée par Disney, les mangas et la pop culture</p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <span className="text-3xl">💖</span>
+            <div className="text-center bg-white rounded-3xl p-8 shadow-lg card-kawaii" style={{ animationDelay: '0.4s' }}>
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-pink-400 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg animate-float-gentle">
+                <span className="text-4xl">💖</span>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">Passion & Créativité</h3>
               <p className="text-gray-600">Chaque tatouage est unique et raconte votre histoire</p>

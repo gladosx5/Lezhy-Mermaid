@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, Heart, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { DecorativeSection } from '../components/DecorativeSection';
 
 interface Tattoo {
   id: string;
@@ -64,14 +65,26 @@ export function Gallery() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
-            Galerie
-          </h1>
-          <p className="text-gray-600 text-lg">Découvrez mes créations kawaii et féériques</p>
-        </div>
+    <DecorativeSection
+      decorations={[
+        { type: 'emoji', emoji: '🌸', position: { top: '8%', left: '2%' }, size: 'md', opacity: 0.06, delay: 0 },
+        { type: 'emoji', emoji: '✨', position: { top: '25%', right: '4%' }, size: 'sm', opacity: 0.08, delay: 1.5 },
+        { type: 'heart', position: { bottom: '20%', left: '5%' }, size: 'sm', opacity: 0.07, delay: 1 },
+        { type: 'sparkle', position: { top: '60%', right: '3%' }, size: 'sm', opacity: 0.09, delay: 2 },
+      ]}
+    >
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-20 texture-grain">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center space-x-2 bg-white/50 backdrop-blur-sm px-6 py-3 rounded-full mb-4 animate-float-gentle">
+              <Sparkles className="w-5 h-5 text-pink-400 animate-pulse" />
+              <span className="text-sm font-medium text-gray-700">Mes créations</span>
+            </div>
+            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-4 text-shadow-glow">
+              Galerie
+            </h1>
+            <p className="text-gray-600 text-lg">Découvrez mes créations kawaii et féériques</p>
+          </div>
 
         <div className="bg-white rounded-3xl shadow-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-4">
@@ -97,50 +110,68 @@ export function Gallery() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-5 py-3 rounded-full text-sm font-medium transition-all transform hover:scale-105 ${
                   selectedCategory === cat.id
-                    ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white shadow-md'
+                    ? 'bg-gradient-to-r from-pink-400 to-purple-400 text-white shadow-md badge-kawaii'
                     : 'bg-pink-50 text-gray-700 hover:bg-pink-100'
                 }`}
               >
-                <span className="mr-2">{cat.emoji}</span>
+                <span className="mr-2 text-base">{cat.emoji}</span>
                 {cat.label}
               </button>
             ))}
           </div>
         </div>
 
-        {filteredTattoos.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {filteredTattoos.map((tattoo) => (
-              <div
-                key={tattoo.id}
-                onClick={() => setSelectedTattoo(tattoo)}
-                className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all cursor-pointer"
-              >
-                <img
-                  src={tattoo.image_url}
-                  alt={tattoo.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white font-medium">{tattoo.title}</p>
-                    <p className="text-white/80 text-sm">{tattoo.category}</p>
+          {filteredTattoos.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {filteredTattoos.map((tattoo) => (
+                <div
+                  key={tattoo.id}
+                  onClick={() => setSelectedTattoo(tattoo)}
+                  className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg card-kawaii cursor-pointer"
+                >
+                  <img
+                    src={tattoo.image_url}
+                    alt={tattoo.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Heart className="w-6 h-6 text-pink-400 fill-pink-400 animate-pulse" />
+                  </div>
+                  <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-pink-600">
+                      Voir
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-white font-medium">{tattoo.title}</p>
+                      <p className="text-white/80 text-sm">{tattoo.category}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-100 rounded-full mb-4">
-              <span className="text-4xl">💫</span>
+              ))}
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Aucun tatouage trouvé</h3>
-            <p className="text-gray-600">Essayez un autre filtre ou une autre recherche</p>
-          </div>
-        )}
+          ) : (
+            <div className="text-center py-20 bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl border-2 border-pink-200 border-dashed">
+              <div className="inline-flex items-center justify-center w-24 h-24 bg-pink-100 rounded-full mb-4 animate-float-gentle">
+                <span className="text-5xl">💫</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Aucun tatouage trouvé</h3>
+              <p className="text-gray-600 mb-4">Essayez un autre filtre ou une autre recherche</p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('all');
+                }}
+                className="inline-flex items-center space-x-2 bg-white hover:bg-pink-50 px-6 py-3 rounded-full text-sm font-medium text-gray-700 shadow-md transition-all"
+              >
+                <Sparkles className="w-4 h-4 text-pink-400" />
+                <span>Réinitialiser les filtres</span>
+              </button>
+            </div>
+          )}
 
         {selectedTattoo && (
           <div
@@ -177,7 +208,8 @@ export function Gallery() {
             </div>
           </div>
         )}
+        </div>
       </div>
-    </div>
+    </DecorativeSection>
   );
 }
