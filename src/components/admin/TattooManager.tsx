@@ -79,18 +79,26 @@ export function TattooManager({ forceOpen = false, onClose }: TattooManagerProps
 
       // if a file was selected, upload it to Supabase Storage
       if (selectedFile) {
+        const BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || 'tattoos';
         const ext = selectedFile.name.split('.').pop();
         const filename = (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
           ? (crypto as any).randomUUID() + '.' + ext
           : `${Date.now()}.${ext}`;
 
-        const path = `tattoos/${filename}`;
-        const { error: uploadError } = await supabase.storage.from('tattoos').upload(path, selectedFile);
-        if (uploadError) throw uploadError;
+        const path = filename;
+        const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, selectedFile);
+        if (uploadError) {
+          console.error('Storage upload error', uploadError);
+          if ((uploadError as any).status === 404 || /Bucket not found/i.test(String((uploadError as any).message || ''))) {
+            // user-friendly message
+            // eslint-disable-next-line no-alert
+            alert(`Bucket \"${BUCKET}\" introuvable dans Supabase Storage. Crée-le dans le dashboard Supabase (Storage → New bucket) ou définis VITE_SUPABASE_STORAGE_BUCKET dans .env.`);
+          }
+          throw uploadError;
+        }
 
         // get public url
-        const { data: urlData } = supabase.storage.from('tattoos').getPublicUrl(path);
-        // getPublicUrl returns { data: { publicUrl } } or { data: { publicURL } }
+        const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
         imageUrl = (urlData as any).publicUrl || (urlData as any).publicURL || '';
       }
 
