@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mail, Instagram, Send, Heart, Sparkles } from 'lucide-react';
+import { Mail, Instagram, Send, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { DecorativeSection } from '../components/DecorativeSection';
 import { MagicButton } from '../components/MagicButton';
