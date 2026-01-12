@@ -140,8 +140,9 @@ export function Gallery() {
                   alt={tattoo.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
-                <div className="absolute bottom-3 left-3 z-10">
+                <div className="absolute bottom-3 left-3 z-10 flex items-center space-x-2">
                   <span className="px-3 py-1 bg-white/90 text-pink-600 rounded-full text-xs font-medium shadow-lg select-none pointer-events-none">{tattoo.category}</span>
+                  <span className="px-3 py-1 bg-white/80 text-gray-800 rounded-full text-xs font-medium shadow-lg select-none pointer-events-none max-w-[10rem] truncate">{tattoo.title}</span>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="absolute bottom-0 left-0 right-0 p-4">

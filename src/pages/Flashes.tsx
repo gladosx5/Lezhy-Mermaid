@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Tag, MapPin, Ruler } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { FlashManager } from '../components/admin/FlashManager';
 import { supabase } from '../lib/supabase';
+import bgPaper from '../image/206b86d0-0557-48d0-b2a5-90e81096dfa7.png';
 
 interface Flash {
   id: string;
@@ -16,12 +19,24 @@ interface Flash {
 }
 
 export function Flashes() {
+  const { isAdmin } = useAuth();
   const [flashes, setFlashes] = useState<Flash[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedFlash, setSelectedFlash] = useState<Flash | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     loadFlashes();
   }, []);
+
+  useEffect(() => {
+    if (showAddModal) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+    return;
+  }, [showAddModal]);
 
   const loadFlashes = async () => {
     const { data } = await supabase
@@ -48,89 +63,77 @@ export function Flashes() {
     }
   };
 
+  const filteredFlashes = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return q ? flashes.filter((f) => (f.title || '').toLowerCase().includes(q)) : flashes;
+  }, [searchQuery, flashes]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 py-20">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-100 to-pink-200 py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400 bg-clip-text text-transparent mb-4">
             Flashs Disponibles
           </h1>
           <p className="text-gray-600 text-lg">Des créations prêtes à être tatouées à prix spécial</p>
+          {isAdmin && (
+            <div className="mt-6">
+              <button onClick={() => setShowAddModal(true)} className="px-4 py-2 mt-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-full">Ajouter un flash</button>
+            </div>
+          )}
         </div>
 
         {flashes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {flashes.map((flash) => (
-              <div
-                key={flash.id}
-                onClick={() => setSelectedFlash(flash)}
-                className="group bg-white rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
-              >
-                {flash.is_featured && (
-                  <div className="absolute top-4 left-4 z-10 bg-gradient-to-r from-pink-400 to-purple-400 text-white px-4 py-2 rounded-full text-sm font-medium shadow-lg">
-                    ⭐ Coup de cœur
-                  </div>
-                )}
-
-                <div className="relative aspect-square">
-                  <img
-                    src={flash.image_url}
-                    alt={flash.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          <div className="bg-rose-50/80 rounded-3xl p-6 md:p-8 shadow-inner border border-rose-200 relative overflow-hidden" style={{ backgroundImage: `url(${bgPaper})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+            <div className="mb-6 flex items-center justify-center">
+              <div className="w-full max-w-xl">
+                <label className="sr-only">Recherche</label>
+                <div className="relative">
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Rechercher par titre..."
+                    className="w-full border border-rose-200 bg-white/60 placeholder:text-rose-400 rounded-full px-4 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-300"
                   />
-                  <div className="absolute top-4 right-4">
-                    {getStatusBadge(flash.status)}
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{flash.title}</h3>
-
-                  {flash.description && (
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{flash.description}</p>
-                  )}
-
-                  <div className="space-y-2 mb-4">
-                    {flash.size && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Ruler className="w-4 h-4 mr-2 text-pink-400" />
-                        <span>Taille: {flash.size}</span>
-                      </div>
-                    )}
-                    {flash.placement && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2 text-purple-400" />
-                        <span>Emplacement: {flash.placement}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {(flash.original_price || flash.promo_price) && (
-                    <div className="flex items-center space-x-3">
-                      {flash.original_price && flash.promo_price && flash.original_price !== flash.promo_price ? (
-                        <>
-                          <span className="text-gray-400 line-through text-lg">{flash.original_price}€</span>
-                          <span className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                            {flash.promo_price}€
-                          </span>
-                          <Tag className="w-5 h-5 text-pink-400" />
-                        </>
-                      ) : (
-                        <span className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                          {flash.promo_price || flash.original_price}€
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {flash.status === 'available' && (
-                    <button className="w-full mt-4 bg-gradient-to-r from-pink-400 to-purple-400 text-white py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all">
-                      Je veux ce flash
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-rose-500 hover:text-rose-700"
+                      aria-label="Effacer la recherche"
+                    >
+                      ✕
                     </button>
                   )}
                 </div>
               </div>
-            ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredFlashes.map((flash) => {
+                const parts: string[] = [];
+                // @ts-ignore
+                if ((flash as any).category) parts.push((flash as any).category);
+                if (flash.placement) parts.push(flash.placement);
+                if (flash.size) parts.push(flash.size);
+
+                return (
+                  <div
+                    key={flash.id}
+                    onClick={() => setSelectedFlash(flash)}
+                    className="group bg-transparent rounded-3xl shadow-none cursor-pointer"
+                  >
+                    <div className="flex items-center justify-center p-6">
+                      <div className="w-48 h-48 rounded-full overflow-hidden shadow-xl transform transition-transform group-hover:scale-105">
+                        <img src={flash.image_url} alt={flash.title} className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                    <div className="text-center pb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">{flash.title}</h3>
+                      {flash.size && <p className="text-sm text-gray-600">{flash.size}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="text-center py-20">
@@ -142,13 +145,25 @@ export function Flashes() {
           </div>
         )}
 
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-4xl p-6 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Ajouter / Gérer les flashs</h3>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+              </div>
+              <FlashManager />
+            </div>
+          </div>
+        )}
+
         {selectedFlash && (
           <div
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={() => setSelectedFlash(null)}
           >
             <div
-              className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-rose-50/95 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-rose-200"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-8">
