@@ -7,7 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 interface AvailabilitySlot {
   id: string;
   date: string; // YYYY-MM-DD
-  time_slot: string; // e.g. "10h00/14h00"
+  time_slot: string; // e.g. "10h00/14h00" or "10h"
   is_available: boolean;
   notes: string | null;
 }
@@ -15,8 +15,10 @@ interface AvailabilitySlot {
 export function Availability() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
+  const [pendingToggles, setPendingToggles] = useState<Record<string, boolean>>({});
+  const [lastToggled, setLastToggled] = useState<string | null>(null);
 
-  useEffect(() => { loadAvailability(); }, [currentMonth]);
+  useEffect(() => { void loadAvailability(); }, [currentMonth]);
 
   const loadAvailability = async () => {
     const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -75,53 +77,150 @@ export function Availability() {
 
   const previousMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
   const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-
   const monthName = currentMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-
   const today = new Date(); today.setHours(0,0,0,0);
 
   const { isAdmin } = useAuth();
+  const devAdminLogin = async () => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: 'admin@lethy-mermaid.com',
+    password: 'admin',
+  });
 
-  const [lastToggled, setLastToggled] = useState<string | null>(null);
+  console.log('DEV ADMIN LOGIN', { data, error });
+
+  const session = await supabase.auth.getSession();
+  console.log('SESSION AFTER LOGIN', session.data.session);
+};
 
   // Debug helper: explicit click wrapper to ensure clicks register
   const handleHalfClick = (e: React.MouseEvent, day: number, half: '10' | '14') => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('handleHalfClick', { isAdmin, day, half, target: (e.target as HTMLElement).tagName });
+    const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+
+    // block if not admin
     if (!isAdmin) return;
+
+    // block if a pending toggle is in-flight for this exact half
+    const key = `${dateStr}-${half}`;
+    if (pendingToggles[key]) return;
+
     void toggleHalf(day, half);
   };
 
-  const toggleHalf = async (day: number, half: '10' | '14') => {
+const toggleHalf = async (day: number, half: '10' | '14') => {
+  const { data: sessionData } = await supabase.auth.getSession();
+  console.log('SESSION AT CLICK', sessionData.session);
+
+  if (!sessionData.session) {
+    alert('❌ Tu dois être connecté en admin');
+    return;
+  }
+
+
     const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
+    const key = `${dateStr}-${half}`;
+
+    // Save previous state in case we need to rollback
+    const previous = [...availability];
+
+    // Optimistic update
+    const existingIndex = availability.findIndex(s => s.date === dateStr && s.time_slot?.includes(`${half}`));
+    let newAvailability = [...availability];
+
+    if (existingIndex >= 0) {
+      const existingSlot = { ...newAvailability[existingIndex] };
+      existingSlot.is_available = !existingSlot.is_available;
+      newAvailability[existingIndex] = existingSlot;
+    } else {
+      const localSlot: AvailabilitySlot = {
+        id: `local-${dateStr}-${half}-${Date.now()}`,
+        date: dateStr,
+        time_slot: `${half}h`,
+        is_available: false,
+        notes: null,
+      };
+      newAvailability.push(localSlot);
+    }
+
+    setAvailability(newAvailability);
+    setLastToggled(key);
+
+    // mark as pending (blocks further clicks)
+    setPendingToggles(prev => ({ ...prev, [key]: true }));
 
     try {
-      console.log('Admin toggleHalf', { day, half, dateStr });
-      const { data: existing } = await supabase
+      // query existing on server
+      const { data: existing, error: selErr } = await supabase
         .from('availability')
         .select('*')
         .eq('date', dateStr)
         .like('time_slot', `%${half}%`);
 
+      if (selErr) throw selErr;
+
       if (existing && existing.length > 0) {
         const row = existing[0] as AvailabilitySlot;
-        await supabase.from('availability').update({ is_available: !row.is_available }).eq('id', row.id);
+
+        const { error: updErr } = await supabase
+          .from('availability')
+          .update({ is_available: !row.is_available })
+          .eq('id', row.id);
+
+        if (updErr) throw updErr;
+
+        // reload authoritative data
+        await loadAvailability();
       } else {
-        await supabase.from('availability').insert({ date: dateStr, time_slot: `${half}h`, is_available: false, notes: null });
+        const { error: insErr } = await supabase
+          .from('availability')
+          .insert({ date: dateStr, time_slot: `${half}h`, is_available: false, notes: null });
+
+        if (insErr) throw insErr;
+
+        await loadAvailability();
       }
-    } catch (err) {
-      console.error('Toggle half failed', err);
+    } catch (err: any) {
+      // rollback optimistic UI on failure
+      console.warn('Remote update failed — rollback optimistic update:', err?.message ?? err);
+      setAvailability(previous);
+      // optionally show a UI notification here (toast) to inform admin
+    } finally {
+      // clear pending and animation
+      setPendingToggles(prev => {
+        const copy = { ...prev };
+        delete copy[key];
+        return copy;
+      });
+      setTimeout(() => setLastToggled(null), 600);
     }
-    // Trigger a short animation for feedback
-    setLastToggled(`${dateStr}-${half}`);
-    await loadAvailability();
-    setTimeout(() => setLastToggled(null), 800);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-pink-100 to-purple-50 py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {import.meta.env.DEV && (
+  <div className="mb-6 flex justify-center gap-4">
+    <button
+      onClick={devAdminLogin}
+      className="px-4 py-2 rounded bg-red-600 text-white font-semibold shadow"
+    >
+      🔐 LOGIN ADMIN (TEST)
+    </button>
+
+    <button
+      onClick={async () => {
+        await supabase.auth.signOut();
+        console.log('SIGNED OUT');
+      }}
+      className="px-4 py-2 rounded bg-gray-600 text-white font-semibold shadow"
+    >
+      🚪 LOGOUT
+    </button>
+  </div>
+)}
+
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm px-5 py-2 rounded-full mx-auto mb-4">
             <Calendar className="w-5 h-5 text-pink-500" />
@@ -153,15 +252,15 @@ export function Availability() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-7 gap-0 text-center text-sm font-medium text-pink-500 mb-2">
+              <div className="grid grid-cols-7 gap-2 text-center text-sm font-medium text-pink-500 mb-2">
                 {['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'].map(d => (
-                  <div key={d} className="py-3 border-b border-r border-gray-200">{d}</div>
+                  <div key={d} className="py-3">{d}</div>
                 ))}
               </div>
 
-              <div className="grid grid-cols-7 gap-0">
+              <div className="grid grid-cols-7 gap-2">
                 {days.map((day, idx) => {
-                  if (day === null) return <div key={`empty-${idx}`} className="min-h-[100px] border-r border-b border-gray-200 bg-transparent" />;
+                  if (day === null) return <div key={`empty-${idx}`} className="min-h-[100px] bg-transparent" />;
 
                   const slots = getSlotsFor(day);
                   const past = isPast(day);
@@ -169,39 +268,59 @@ export function Availability() {
                   const { morningTaken, afternoonTaken } = getSlotStatus(slots);
                   const dateStr = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toISOString().split('T')[0];
 
+                  // if both halves taken -> render a single rounded container with two children (no double rounding)
+                  const bothTaken = morningTaken && afternoonTaken;
+                  const morningKey = `${dateStr}-10`;
+                  const afternoonKey = `${dateStr}-14`;
+
                   return (
-                    <div key={day} className={`min-h-[110px] border-r border-b border-gray-200 p-3 relative ${past ? 'bg-gray-50 opacity-70' : 'bg-white'}`}>
-                      <div className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${isToday ? 'bg-pink-100 text-pink-600 border border-pink-200' : 'text-gray-400'}`}>
+                    <div key={day} className={`min-h-[110px] p-3 relative rounded-2xl shadow-sm overflow-hidden ${past ? 'bg-gray-50 opacity-70 border border-transparent' : 'bg-white border border-gray-100'}`}>
+                      <div className={`absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${isToday ? 'bg-pink-100 text-pink-600 border border-pink-200 shadow-sm' : 'bg-white text-gray-400 shadow-sm'}`}>
                         {day}
                       </div>
 
                       <div className="h-full flex flex-col pt-6">
                         {!past ? (
-                          // both halves taken -> show both sky-blue
-                          morningTaken && afternoonTaken ? (
-                            <>
-                              <div className={`flex-1 flex items-center justify-center border-b bg-sky-300 text-white transition-transform ${lastToggled === `${dateStr}-10` ? 'scale-105 ring-2 ring-white' : ''}`}>
-                                <span className="font-semibold">10h</span>
-                              </div>
-                              <div className={`flex-1 flex items-center justify-center bg-sky-300 text-white transition-transform ${lastToggled === `${dateStr}-14` ? 'scale-105 ring-2 ring-white' : ''}`}>
-                                <span className="font-semibold">14h</span>
-                              </div>
-                            </>
-                          ) : (
+bothTaken ? (
+  <div className="flex-1 flex flex-col overflow-hidden rounded-2xl">
+    <div
+      onClick={(e) => handleHalfClick(e, day, '10')}
+      role={isAdmin ? 'button' : undefined}
+      className={`flex-1 flex items-center justify-center bg-sky-300 text-white border-b border-sky-400
+        ${isAdmin ? 'cursor-pointer hover:brightness-110' : ''}
+        ${pendingToggles[morningKey] ? 'opacity-70 cursor-wait' : ''}
+      `}
+    >
+      <span className="font-semibold">10h</span>
+    </div>
+
+    <div
+      onClick={(e) => handleHalfClick(e, day, '14')}
+      role={isAdmin ? 'button' : undefined}
+      className={`flex-1 flex items-center justify-center bg-sky-300 text-white
+        ${isAdmin ? 'cursor-pointer hover:brightness-110' : ''}
+        ${pendingToggles[afternoonKey] ? 'opacity-70 cursor-wait' : ''}
+      `}
+    >
+      <span className="font-semibold">14h</span>
+    </div>
+  </div>
+) : (
+                            // single halves: keep rounded top/bottom separately for nicer look
                             <>
                               <div
-                                onClick={() => isAdmin && toggleHalf(day, '10')}
+                                onClick={(e) => handleHalfClick(e, day, '10')}
                                 role={isAdmin ? 'button' : undefined}
                                 aria-label={isAdmin ? `Toggle 10h for ${day}` : undefined}
-                                className={`flex-1 flex items-center justify-center border-b ${morningTaken ? 'bg-pink-400 text-white' : 'bg-white text-gray-400'} ${isAdmin ? 'cursor-pointer hover:scale-[1.03] transition-all' : ''} ${lastToggled === `${dateStr}-10` && morningTaken ? 'scale-105 ring-2 ring-white' : ''}`}
+                                className={`flex-1 flex items-center justify-center border-b ${morningTaken ? 'bg-pink-400 text-white' : 'bg-white text-gray-400'} ${isAdmin ? (pendingToggles[morningKey] ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.03] transition-all') : ''} ${lastToggled === morningKey && morningTaken ? 'scale-105 ring-2 ring-white' : ''} rounded-t-2xl`}
                               >
                                 <span className={morningTaken ? 'font-semibold' : 'text-sm'}>10h</span>
                               </div>
                               <div
-                                onClick={() => isAdmin && toggleHalf(day, '14')}
+                                onClick={(e) => handleHalfClick(e, day, '14')}
                                 role={isAdmin ? 'button' : undefined}
                                 aria-label={isAdmin ? `Toggle 14h for ${day}` : undefined}
-                                className={`flex-1 flex items-center justify-center ${afternoonTaken ? 'bg-purple-500 text-white' : 'bg-white text-gray-400'} ${isAdmin ? 'cursor-pointer hover:scale-[1.03] transition-all' : ''} ${lastToggled === `${dateStr}-14` && afternoonTaken ? 'scale-105 ring-2 ring-white' : ''}`}
+                                className={`flex-1 flex items-center justify-center ${afternoonTaken ? 'bg-purple-500 text-white' : 'bg-white text-gray-400'} ${isAdmin ? (pendingToggles[afternoonKey] ? 'cursor-wait opacity-80' : 'cursor-pointer hover:scale-[1.03] transition-all') : ''} ${lastToggled === afternoonKey && afternoonTaken ? 'scale-105 ring-2 ring-white' : ''} rounded-b-2xl`}
                               >
                                 <span className={afternoonTaken ? 'font-semibold' : 'text-sm'}>14h</span>
                               </div>
