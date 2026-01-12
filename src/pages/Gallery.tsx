@@ -16,6 +16,16 @@ interface Tattoo {
 export function Gallery() {
   const { isAdmin } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+
+  useEffect(() => {
+    // prevent background scrolling when modal is open
+    if (showAddModal) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+    return;
+  }, [showAddModal]);
   const [tattoos, setTattoos] = useState<Tattoo[]>([]);
   const [filteredTattoos, setFilteredTattoos] = useState<Tattoo[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -151,7 +161,7 @@ export function Gallery() {
 
         {showAddModal && (
           <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-4xl p-6">
+            <div className="bg-white rounded-3xl w-full max-w-4xl p-6 max-h-[80vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold">Ajouter un tatouage</h3>
                 <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
