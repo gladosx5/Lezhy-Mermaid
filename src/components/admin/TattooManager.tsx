@@ -33,6 +33,9 @@ export function TattooManager({ forceOpen = false, onClose }: TattooManagerProps
 
   // tag input helper: keep a separate tag state so it's easy to add new tag
   const [tagInput, setTagInput] = useState('kawaii');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [displayDate, setDisplayDate] = useState<string>('');
 
   useEffect(() => {
     loadTattoos();
@@ -71,15 +74,51 @@ export function TattooManager({ forceOpen = false, onClose }: TattooManagerProps
     e.preventDefault();
 
     // Save tattoo (category will be used as tag)
-    if (editingId) {
-      await supabase
-        .from('tattoos')
-        .update(formData)
-        .eq('id', editingId);
-    } else {
-      await supabase
-        .from('tattoos')
-        .insert([formData]);
+    try {
+      let imageUrl = formData.image_url;
+
+      // if a file was selected, upload it to Supabase Storage
+      if (selectedFile) {
+        const ext = selectedFile.name.split('.').pop();
+        const filename = (typeof crypto !== 'undefined' && (crypto as any).randomUUID)
+          ? (crypto as any).randomUUID() + '.' + ext
+          : `${Date.now()}.${ext}`;
+
+        const path = `tattoos/${filename}`;
+        const { error: uploadError } = await supabase.storage.from('tattoos').upload(path, selectedFile);
+        if (uploadError) throw uploadError;
+
+        // get public url
+        const { data: urlData } = supabase.storage.from('tattoos').getPublicUrl(path);
+        // getPublicUrl returns { data: { publicUrl } } or { data: { publicURL } }
+        imageUrl = (urlData as any).publicUrl || (urlData as any).publicURL || '';
+      }
+
+      // append displayDate into description (safe storage without DB schema change)
+      let finalDescription = formData.description || '';
+      if (displayDate) {
+        finalDescription = `${finalDescription}${finalDescription ? '\n\n' : ''}Date: ${displayDate}`;
+      }
+
+      const payload: any = {
+        title: formData.title,
+        description: finalDescription || null,
+        image_url: imageUrl,
+        category: formData.category,
+        is_featured: formData.is_featured,
+        price_range: formData.price_range || null,
+      };
+
+      if (editingId) {
+        await supabase.from('tattoos').update(payload).eq('id', editingId);
+      } else {
+        await supabase.from('tattoos').insert([payload]);
+      }
+    } catch (err) {
+      console.error('Failed to save tattoo', err);
+      // eslint-disable-next-line no-alert
+      alert('Erreur lors de l\'enregistrement du tatouage. Voir la console.');
+      return;
     }
 
     // if the selected tag/category is new, append to inspirations pills
@@ -203,15 +242,31 @@ export function TattooManager({ forceOpen = false, onClose }: TattooManagerProps
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                URL de l'image
+                Image
               </label>
               <input
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                required
-                className="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null;
+                  setSelectedFile(f);
+                  if (f) setPreviewUrl(URL.createObjectURL(f));
+                }}
+                className="w-full"
+                required={!editingId}
               />
+              {previewUrl && (
+                <img src={previewUrl} alt="preview" className="mt-3 max-h-48 object-cover rounded" />
+              )}
+              {formData.image_url && !previewUrl && (
+                <img src={formData.image_url} alt="preview" className="mt-3 max-h-48 object-cover rounded" />
+              )}
+              <p className="text-xs text-gray-500 mt-1">Tu peux uploader une image locale; elle sera stockée dans Supabase Storage.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <input type="date" value={displayDate} onChange={(e) => setDisplayDate(e.target.value)} className="px-4 py-2 rounded-xl border-2 border-pink-200 focus:border-pink-400" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
