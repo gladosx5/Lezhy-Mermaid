@@ -80,6 +80,21 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
               <Instagram size={20} />
             </a>
 
+            {!isAdmin && (
+              <button
+                onClick={() => {
+                  try {
+                    signInAdmin();
+                  } catch (e) {
+                    console.error('Failed to activate admin:', e);
+                  }
+                }}
+                className="flex items-center space-x-2 px-3 py-2 bg-pink-50 hover:bg-pink-100 rounded-full text-sm font-medium text-pink-600 transition-colors"
+              >
+                <span>Admin</span>
+              </button>
+            )}
+
             {isAdmin && (
               <button
                 onClick={signOut}
