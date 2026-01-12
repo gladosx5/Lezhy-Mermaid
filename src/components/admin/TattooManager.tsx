@@ -12,10 +12,15 @@ interface Tattoo {
   price_range: string | null;
 }
 
-export function TattooManager() {
+interface TattooManagerProps {
+  forceOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function TattooManager({ forceOpen = false, onClose }: TattooManagerProps) {
   const [tattoos, setTattoos] = useState<Tattoo[]>([]);
   const [inspirations, setInspirations] = useState<string[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(!!forceOpen);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -32,6 +37,7 @@ export function TattooManager() {
   useEffect(() => {
     loadTattoos();
     loadInspirations();
+    if (forceOpen) setIsEditing(true);
   }, []);
 
   const loadTattoos = async () => {
@@ -105,6 +111,7 @@ export function TattooManager() {
 
     resetForm();
     loadTattoos();
+    if (forceOpen && onClose) onClose();
   };
 
   const handleEdit = (tattoo: Tattoo) => {

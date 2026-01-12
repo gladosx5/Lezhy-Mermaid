@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { TattooManager } from '../components/admin/TattooManager';
 import { supabase } from '../lib/supabase';
 
 interface Tattoo {
@@ -12,6 +14,8 @@ interface Tattoo {
 }
 
 export function Gallery() {
+  const { isAdmin } = useAuth();
+  const [showAddModal, setShowAddModal] = useState(false);
   const [tattoos, setTattoos] = useState<Tattoo[]>([]);
   const [filteredTattoos, setFilteredTattoos] = useState<Tattoo[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -89,6 +93,9 @@ export function Gallery() {
             <div className="flex items-center space-x-2">
               <Filter className="text-gray-400 w-5 h-5" />
               <span className="text-sm font-medium text-gray-600">Filtrer:</span>
+              {isAdmin && (
+                <button onClick={() => setShowAddModal(true)} className="ml-auto px-4 py-2 bg-gradient-to-r from-pink-400 to-purple-400 text-white rounded-full">Ajouter un tatouage</button>
+              )}
             </div>
           </div>
 
@@ -139,6 +146,18 @@ export function Gallery() {
             </div>
             <h3 className="text-2xl font-bold text-gray-900 mb-2">Aucun tatouage trouvé</h3>
             <p className="text-gray-600">Essayez un autre filtre ou une autre recherche</p>
+          </div>
+        )}
+
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl w-full max-w-4xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold">Ajouter un tatouage</h3>
+                <button onClick={() => setShowAddModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
+              </div>
+              <TattooManager forceOpen onClose={() => setShowAddModal(false)} />
+            </div>
           </div>
         )}
 
