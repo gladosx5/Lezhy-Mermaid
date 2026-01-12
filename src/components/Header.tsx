@@ -1,4 +1,5 @@
 import { Heart, Instagram, LogOut } from 'lucide-react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 interface HeaderProps {
@@ -7,7 +8,8 @@ interface HeaderProps {
 }
 
 export function Header({ currentPage, onNavigate }: HeaderProps) {
-  const { isAdmin, signOut } = useAuth();
+  const { isAdmin, signOut, signInAdmin } = useAuth();
+  const [logoClickCount, setLogoClickCount] = useState(0);
 
   const navItems = [
     { id: 'home', label: 'Accueil' },
@@ -25,7 +27,20 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           <button
-            onClick={() => onNavigate('home')}
+            onClick={() => {
+              const newCount = logoClickCount + 1;
+              setLogoClickCount(newCount);
+              if (newCount === 5) {
+                try {
+                  signInAdmin();
+                } catch (error) {
+                  console.error('Admin login failed:', error);
+                }
+                setLogoClickCount(0); // Reset after attempt
+              } else {
+                onNavigate('home');
+              }
+            }}
             className="flex items-center space-x-3 group"
           >
             <div className="w-12 h-12 bg-gradient-to-br from-pink-300 via-purple-300 to-blue-300 rounded-full flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
