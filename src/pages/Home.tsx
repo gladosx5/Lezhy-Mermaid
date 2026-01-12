@@ -18,7 +18,11 @@ interface Tattoo {
   category: string;
 }
 
-export function Home() {
+interface HomeProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function Home({ onNavigate }: HomeProps) {
   const [content, setContent] = useState<Record<string, string>>({});
   const [featuredTattoos, setFeaturedTattoos] = useState<Tattoo[]>([]);
 
@@ -96,10 +100,10 @@ export function Home() {
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <KawaiiButton variant="primary" icon={Heart}>
+            <KawaiiButton variant="primary" icon={Heart} onClick={() => onNavigate?.('gallery') }>
               Voir la galerie
             </KawaiiButton>
-            <KawaiiButton variant="secondary" icon={ArrowRight}>
+            <KawaiiButton variant="secondary" icon={ArrowRight} onClick={() => onNavigate?.('contact') }>
               Me contacter
             </KawaiiButton>
           </div>
@@ -170,7 +174,7 @@ export function Home() {
           )}
 
           <div className="text-center mt-12">
-            <KawaiiButton variant="primary" icon={ArrowRight}>
+            <KawaiiButton variant="primary" icon={ArrowRight} onClick={() => onNavigate?.('gallery')}>
               Voir toute la galerie
             </KawaiiButton>
           </div>

@@ -14,6 +14,7 @@ interface Tattoo {
 
 export function TattooManager() {
   const [tattoos, setTattoos] = useState<Tattoo[]>([]);
+  const [inspirations, setInspirations] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -25,8 +26,12 @@ export function TattooManager() {
     price_range: '',
   });
 
+  // tag input helper: keep a separate tag state so it's easy to add new tag
+  const [tagInput, setTagInput] = useState('kawaii');
+
   useEffect(() => {
     loadTattoos();
+    loadInspirations();
   }, []);
 
   const loadTattoos = async () => {
@@ -38,9 +43,28 @@ export function TattooManager() {
     if (data) setTattoos(data);
   };
 
+  const loadInspirations = async () => {
+    const { data } = await supabase
+      .from('site_content')
+      .select('*')
+      .eq('section', 'about')
+      .eq('key', 'inspirations')
+      .maybeSingle();
+
+    if (data && data.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) setInspirations(parsed);
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Save tattoo (category will be used as tag)
     if (editingId) {
       await supabase
         .from('tattoos')
@@ -50,6 +74,33 @@ export function TattooManager() {
       await supabase
         .from('tattoos')
         .insert([formData]);
+    }
+
+    // if the selected tag/category is new, append to inspirations pills
+    const tag = formData.category?.trim();
+    if (tag) {
+      const normalized = tag;
+      if (!inspirations.includes(normalized)) {
+        const next = [...inspirations, normalized];
+        try {
+          // upsert inspirations into site_content
+          const { data } = await supabase
+            .from('site_content')
+            .select('*')
+            .eq('section', 'about')
+            .eq('key', 'inspirations')
+            .maybeSingle();
+
+          if (data && data.id) {
+            await supabase.from('site_content').update({ value: JSON.stringify(next) }).eq('id', data.id);
+          } else {
+            await supabase.from('site_content').insert([{ section: 'about', key: 'inspirations', value: JSON.stringify(next) }]);
+          }
+          setInspirations(next);
+        } catch (e) {
+          console.error('Failed to update inspirations', e);
+        }
+      }
     }
 
     resetForm();
@@ -166,11 +217,17 @@ export function TattooManager() {
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-4 py-2 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none"
                 >
-                  <option value="kawaii">Kawaii</option>
-                  <option value="disney">Disney</option>
-                  <option value="manga">Manga</option>
-                  <option value="color">Couleur</option>
-                  <option value="blackwork">Noir</option>
+                    {inspirations.length > 0 ? (
+                      inspirations.map((t) => <option key={t} value={t}>{t}</option>)
+                    ) : (
+                      <>
+                        <option value="kawaii">Kawaii</option>
+                        <option value="disney">Disney</option>
+                        <option value="manga">Manga</option>
+                        <option value="color">Couleur</option>
+                        <option value="blackwork">Noir</option>
+                      </>
+                    )}
                 </select>
               </div>
 
@@ -199,6 +256,15 @@ export function TattooManager() {
                 Mettre en vedette
               </span>
             </label>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tag (nouveau ou existant)</label>
+              <div className="flex gap-2">
+                <input value={tagInput} onChange={(e) => setTagInput(e.target.value)} className="flex-1 px-4 py-2 rounded-xl border-2 border-pink-200 focus:border-pink-400 focus:outline-none" />
+                <button type="button" onClick={() => { setFormData({ ...formData, category: tagInput }); }} className="px-4 py-2 bg-pink-100 rounded">Appliquer</button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Le tag sera enregistré comme `category` du tatouage et ajouté aux inspirations s'il est nouveau.</p>
+            </div>
 
             <div className="flex space-x-3">
               <button

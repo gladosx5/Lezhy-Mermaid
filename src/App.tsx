@@ -17,10 +17,10 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
 
-  const renderPage = () => {
+  const renderPage = ({ onNavigate }: { onNavigate: (page: string) => void }) => {
     switch (currentPage) {
       case 'home':
-        return <Home />;
+        return <Home onNavigate={onNavigate} />;
       case 'about':
         return <About />;
       case 'gallery':
@@ -36,7 +36,7 @@ function App() {
       case 'shop':
         return <Shop />;
       default:
-        return <Home />;
+        return <Home onNavigate={onNavigate} />;
     }
   };
 
@@ -45,7 +45,7 @@ function App() {
       <div className="min-h-screen flex flex-col">
         <Header currentPage={currentPage} onNavigate={setCurrentPage} />
         <main className="flex-1">
-          {renderPage()}
+          {renderPage({ onNavigate: setCurrentPage })}
         </main>
         <Footer onOpenAdminLogin={() => setIsLoginOpen(true)} />
         <AdminLogin isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
